@@ -8,14 +8,12 @@ use Illuminate\Http\Request;
 use App\Models\AttendanceLog;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Auth;
 
 class AttendanceController extends Controller
 {
     public function attendanceLogs(Request $request)
     {
-        // 1. Define the date range
-        // 1. Define the date range
+        // 1️⃣ Define the date range
         $startDate = $request->input('start_date')
             ? Carbon::parse($request->input('start_date'))->startOfDay()
             : Carbon::today()->startOfDay();
@@ -24,63 +22,64 @@ class AttendanceController extends Controller
             ? Carbon::parse($request->input('end_date'))->endOfDay()
             : $startDate->copy()->endOfDay();
 
-        // 2. Build the base query with all joins and select statements
+        // 2️⃣ Subquery: summarize attendance per user per date
+        $attendanceSub = DB::table('attendance_logs as al')
+            ->select(
+                'al.user_id',
+                DB::raw('DATE(al.check_in) as attendance_date'),
+                DB::raw('MIN(al.check_in) as check_in'),
+                DB::raw('MAX(al.check_out) as check_out'),
+                DB::raw('SUM(al.total_minutes) as total_minutes')
+            )
+            ->whereBetween('al.check_in', [$startDate, $endDate])
+            ->groupBy('al.user_id', DB::raw('DATE(al.check_in)'));
+
+        // 3️⃣ Main query: join summarized attendance with users and related tables
         $query = User::select([
             'users.id as user_id',
-            'users.employee_id AS employee_id',
+            'users.employee_id',
+            'users.name as employee_name',
             'departments.name as department_name',
             'departments.slug as department_slug',
             'designations.name as designation_name',
             'designations.slug as designation_slug',
             'branches.name as branch_name',
             'branches.slug as branch_slug',
-            'users.name AS employee_name',
             'attendance_summary.attendance_date',
             'attendance_summary.check_in',
-            'check_in_log.latitude AS check_in_lat',
-            'check_in_log.longitude AS check_in_lon',
             'attendance_summary.check_out',
-            'check_out_log.latitude AS check_out_lat',
-            'check_out_log.longitude AS check_out_lon',
-            DB::raw('TIMEDIFF(attendance_summary.check_out, attendance_summary.check_in) AS working_hours'),
-            DB::raw("CASE WHEN attendance_summary.check_in IS NOT NULL THEN 'present' ELSE 'absent' END AS status")
+            'attendance_summary.total_minutes',
+            DB::raw("ROUND(attendance_summary.total_minutes / 60, 2) as working_hours"),
+            DB::raw("CASE WHEN attendance_summary.check_in IS NOT NULL THEN 'present' ELSE 'absent' END as status"),
+            'first_log.id as first_checkin_id',
+            'last_log.id as last_checkout_id',
+            'first_log.latitude as check_in_lat',
+            'first_log.longitude as check_in_lon',
+            'last_log.latitude as check_out_lat',
+            'last_log.longitude as check_out_lon'
         ])
             ->leftJoin('departments', 'users.department_id', '=', 'departments.id')
             ->leftJoin('designations', 'users.designation_id', '=', 'designations.id')
             ->leftJoin('branches', 'users.branch_id', '=', 'branches.id')
-            ->leftJoinSub(
-                function ($subQuery) use ($startDate, $endDate) {
-                    $subQuery->from('attendance_logs')
-                        ->select(
-                            'user_id',
-                            DB::raw('DATE(punch_time) AS attendance_date'),
-                            DB::raw('MIN(punch_time) AS check_in'),
-                            DB::raw('MAX(punch_time) AS check_out')
-                        )
-                        ->whereBetween('punch_time', [$startDate, $endDate])
-                        ->groupBy('user_id', 'attendance_date');
-                },
-                'attendance_summary',
-                'attendance_summary.user_id',
-                '=',
-                'users.id'
-            )
-            ->leftJoin('attendance_logs as check_in_log', function ($join) {
-                $join->on('check_in_log.user_id', '=', 'attendance_summary.user_id')
-                    ->on('check_in_log.punch_time', '=', 'attendance_summary.check_in');
+            ->leftJoinSub($attendanceSub, 'attendance_summary', function ($join) {
+                $join->on('attendance_summary.user_id', '=', 'users.id');
             })
-            ->leftJoin('attendance_logs as check_out_log', function ($join) {
-                $join->on('check_out_log.user_id', '=', 'attendance_summary.user_id')
-                    ->on('check_out_log.punch_time', '=', 'attendance_summary.check_out');
+            ->leftJoin('attendance_logs as first_log', function ($join) {
+                $join->on('first_log.user_id', '=', 'attendance_summary.user_id')
+                    ->on('first_log.check_in', '=', 'attendance_summary.check_in');
+            })
+            ->leftJoin('attendance_logs as last_log', function ($join) {
+                $join->on('last_log.user_id', '=', 'attendance_summary.user_id')
+                    ->on('last_log.check_out', '=', 'attendance_summary.check_out');
             });
 
-        // 3. Apply dynamic filters based on request input
-        if ($request->filled('user_id')) {
-            $query->where('users.id', $request->input('user_id'));
+        // 4️⃣ Apply filters
+        if ($request->filled('user')) {
+            $query->where('users.employee_id', $request->input('user'));
         }
 
-        if ($request->filled('branch_slug')) {
-            $query->where('branches.slug', $request->input('branch_slug'));
+        if ($request->filled('branch')) {
+            $query->where('branches.slug', $request->input('branch'));
         }
 
         if ($request->filled('department_slug')) {
@@ -92,7 +91,7 @@ class AttendanceController extends Controller
         }
 
         if ($request->filled('status')) {
-            $status = strtolower($request->input('status')); // Normalize status input
+            $status = strtolower($request->input('status'));
             if ($status === 'present') {
                 $query->whereNotNull('attendance_summary.check_in');
             } elseif ($status === 'absent') {
@@ -100,74 +99,35 @@ class AttendanceController extends Controller
             }
         }
 
-        // 4. Order and get results
-        $attendance_summery = $query->orderBy('attendance_summary.check_in', 'desc')
+        // 5️⃣ Order and paginate
+        $attendance_summary = $query
+            ->orderBy('attendance_summary.attendance_date', 'desc')
             ->paginate(100);
 
-        //return response()->json($report);
-        return view('admin.attendance.attendance_logs', compact('attendance_summery'));
+        return view('admin.attendance.attendance_logs', compact('attendance_summary'));
     }
 
-    public function attendanceDetails(Request $request)
+
+    public function punchHistory()
     {
-        $employeeId = $request->get('employee_id');
-        $date = $request->get('date');
-
-        if (!$employeeId || !$date) {
-            return response()->json(['error' => 'Employee ID and date are required.'], 400);
+        $user_id = request()->get('user_id');
+        $attendance_date = request()->get('attendance_date');
+        if (!$user_id || !$attendance_date) {
+            return response()->json(['error' => 'Employee and date are required.'], 400);
         }
+        $punch_history = AttendanceLog::whereDate('check_in', $attendance_date)->where("user_id", $user_id)->select('id', 'user_id', 'check_in', 'check_out', 'client_ip', 'total_minutes')->get();
+        $totalMinutes = $punch_history->sum('total_minutes');
+        $totalHours   = round($totalMinutes / 60, 2);
+        $html = view('admin.attendance.user_punch_history', compact('punch_history', 'totalHours'))->render();
+        return response()->json([
+            'title' => 'Punch history for ' . userNameById($user_id) . ' on ' . dateFormat($attendance_date, 'd M, y'),
+            'html' => $html
+        ]);
+    }
 
-        $attendanceSummary = AttendanceLog::select(
-            DB::raw('MIN(punch_time) AS check_in'),
-            DB::raw('MAX(punch_time) AS check_out')
-        )
-            ->where('user_id', $employeeId)
-            ->whereDate('punch_time', $date)
-            ->groupBy('user_id')
-            ->first();
-
-        if (!$attendanceSummary) {
-            return response()->json([
-                'check_in' => null,
-                'check_out' => null,
-                'check_in_lat' => null,
-                'check_in_lon' => null,
-                'check_out_lat' => null,
-                'check_out_lon' => null,
-                'working_hours' => '00:00:00',
-            ]);
-        }
-
-        $checkInLog = AttendanceLog::where('user_id', $employeeId)
-            ->where('punch_time', $attendanceSummary->check_in)
-            ->first(['latitude', 'longitude']);
-
-        $checkOutLog = AttendanceLog::where('user_id', $employeeId)
-            ->where('punch_time', $attendanceSummary->check_out)
-            ->first(['latitude', 'longitude']);
-
-        $workingHours = '00:00:00';
-        if ($attendanceSummary->check_in && $attendanceSummary->check_out) {
-            $checkInTime = new \DateTime($attendanceSummary->check_in);
-            $checkOutTime = new \DateTime($attendanceSummary->check_out);
-            $interval = $checkOutTime->diff($checkInTime);
-            $workingHours = $interval->format('%H:%I:%S');
-        }
-
-        $attendanceDetails = (object) [
-            'check_in' => timeFormat($attendanceSummary->check_in),
-            'check_out' => timeFormat($attendanceSummary->check_out),
-            'check_in_lat' => $checkInLog ? $checkInLog->latitude : null,
-            'check_in_lon' => $checkInLog ? $checkInLog->longitude : null,
-            'check_out_lat' => $checkOutLog ? $checkOutLog->latitude : null,
-            'check_out_lon' => $checkOutLog ? $checkOutLog->longitude : null,
-            'working_hour' => workingHours($workingHours)->working_hour ?? 'N/A',
-            'has_check_in' => (bool) $checkInLog, // true if $checkInLog is not null
-            'has_check_out' => (bool) $checkOutLog, // true if $checkOutLog is not null
-        ];
-
-        //return response()->json($attendanceDetails);
-        return view('admin.attendance.attendance_details_leaflet', compact('attendanceDetails'));
-        //return view('admin.attendance.attendance_details_google_map', compact('attendanceDetails'));
+    public function editAttendance($id) {
+        $attendance = AttendanceLog::findOrFail(encrypt_decrypt($id,'decrypt'));
+        $route = route('admin.update-attendance',$attendance->id);
+        return view('admin.attendance.edit_attendance',compact('attendance','route'));
     }
 }

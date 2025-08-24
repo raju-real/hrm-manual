@@ -55,6 +55,9 @@ Route::group(['as' => 'admin.', 'middleware' => 'auth'], function () {
         Route::controller(AttendanceController::class)->group(function() {
             Route::get('attendance-logs','attendanceLogs')->name('attendance-logs');
             Route::get('track-attendance-location','attendanceDetails')->name('track-attendance-location');
+            Route::get('user-punch-history','punchHistory')->name('user-punch-history');
+            Route::get('edit-attendance/{id}','editAttendance')->name('edit-attendance');
+            Route::put('update-attendance/{id}','updateAttendance')->name('update-attendance');
         });
         // Settings
         Route::controller(SettingController::class)->group(function () {

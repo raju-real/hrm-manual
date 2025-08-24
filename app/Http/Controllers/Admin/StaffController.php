@@ -52,7 +52,7 @@ class StaffController extends Controller
             'email' => [
                 'required',
                 'string',
-                'max:30',
+                'max:50',
                 Rule::unique('users', 'email')->whereNull('deleted_at')
             ],
             'mobile' => [
@@ -110,7 +110,7 @@ class StaffController extends Controller
             'email' => [
                 'required',
                 'string',
-                'max:30',
+                'max:50',
                 Rule::unique('users', 'email')->whereNull('deleted_at')->ignore($id)
             ],
             'mobile' => [

@@ -28,38 +28,56 @@ class EmployeeActivityController extends Controller
 
     public function punchManual(Request $request)
     {
-        $this->validate($request, [
-            'direction' => 'required|in:in,out',
-            'latitude' => 'required',
-            'longitude' => 'required'
-        ]);
-
         $direction = $request->direction;
         $latitude = $request->latitude;
         $longitude = $request->longitude;
-        
-        // Business rule: check previous manual records
-        // $lastManual = AttendanceLog::where('employee_id', $user->id)->where('type', 'manual')->latest('punch_time')->first();
-        // if ($direction === 'in' && $lastManual && $lastManual->direction === 'in' && !$lastManual->checkout_recorded_same_day) {
-        //     $lastDate = $lastManual->punch_time->toDateString();
-        //     if ($lastDate < now()->toDateString()) {
-        //         return response()->json(['error' => 'You must checkout the previous manual attendance before next day check-in.'], 422);
-        //     }
-        // }
+        $ipv4 = gethostbyname(gethostname());
+        $userId = Auth::id();
 
-        $attendance = new AttendanceLog();
-        $attendance->user_id = Auth::id();
-        $attendance->punch_time = now();
-        $attendance->direction = $direction;
-        $attendance->latitude = $latitude;
-        $attendance->longitude = $longitude;
-        $attendance->created_by = Auth::id();
-        $attendance->save();
+        if ($direction === 'in') {
+            // Check if already checked in without checking out
+            $openAttendance = AttendanceLog::where('user_id', $userId)
+                ->whereNull('check_out')
+                ->latest()
+                ->first();
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Attendance recorded successfully!'
-        ]);
+            if ($openAttendance) {
+                return response()->json(['status' => 'error', 'message' => 'You are already checked in. Please check out first.']);
+            }
+
+            // Create a new attendance record with check-in time
+            $attendance = new AttendanceLog();
+            $attendance->user_id = $userId;
+            $attendance->check_in = now();
+            $attendance->latitude = $latitude;
+            $attendance->longitude = $longitude;
+            $attendance->client_ip = $ipv4 ?? null;
+            $attendance->created_by = $userId;
+            $attendance->save();
+
+            return response()->json(['status' => 'success', 'message' => 'Checked in successfully.']);
+        } elseif ($direction === 'out') {
+            // Find the last open check-in
+            $attendance = AttendanceLog::where('user_id', $userId)
+                ->whereNull('check_out')
+                ->latest()
+                ->first();
+
+            if (!$attendance) {
+                return response()->json(['status' => 'error', 'message' => 'No check-in record found to check out.']);
+            }
+
+            $attendance->check_out = now();
+            $attendance->latitude = $latitude;
+            $attendance->longitude = $longitude;
+            $attendance->client_ip = $ipv4 ?? null;
+            // Calculate total minutes
+            $attendance->total_minutes = $attendance->check_in->diffInMinutes($attendance->check_out);
+            $attendance->save();
+            return response()->json(['status' => 'success', 'message' => 'Checked out successfully.', 'total_minutes' => $attendance->total_minute]);
+        }
+
+        return response()->json(['status' => 'error', 'message' => 'Invalid direction.']);
     }
 
     public function attendanceLocation($attendance_id)

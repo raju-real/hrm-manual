@@ -1,7 +1,6 @@
 @extends('admin.layouts.app')
 @section('title', 'Attendance Summery')
 @push('css')
-    
 @endpush
 
 @section('content')
@@ -9,11 +8,11 @@
         <div class="col-12">
             <div class="page-title-box d-sm-flex align-items-center justify-content-between">
                 <h4 class="mb-sm-0 font-size-18">Attendance Summery</h4>
-                <div class="page-title-right">
+                {{-- <div class="page-title-right">
                     <a href="javascript:void(0)" class="btn btn-sm btn-primary btn-manual-attendance" data-direction="in">
                         <i class="fa fa-plus-circle"></i> Add Attendance
                     </a>
-                </div>
+                </div> --}}
             </div>
         </div>
     </div>
@@ -35,6 +34,19 @@
                         <div class="accordion-body">
                             <form method="GET" action="{{ route('admin.attendance-logs') }}">
                                 <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-group mb-3">
+                                            <select name="branch" class="form-control slim-select">
+                                                <option value="" {{ !isset(request()->branch) ? 'selected' : '' }}>
+                                                    Branch</option>
+                                                @foreach (allBranches() as $branch)
+                                                    <option value="{{ $branch->slug }}"
+                                                        {{ request('branch') === $branch->slug ? 'selected' : '' }}>
+                                                        {{ $branch->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
                                     <div class="col-md-4">
                                         <div class="form-group mb-3">
                                             <select name="user" class="form-control slim-select">
@@ -104,37 +116,48 @@
                             <thead>
                                 <tr>
                                     <th class="text-center">Sl.no</th>
-                                    <th>Name</th>
                                     <th>Date</th>
-                                    <th class="text-center">Check In</th>
-                                    <th class="text-center">Check Out</th>
+                                    <th>Name</th>
+                                    <th class="text-center">First Check In</th>
+                                    <th class="text-center">Last Check Out</th>
                                     <th class="text-center">Status</th>
                                     <th class="text-center">Working Hour</th>
                                     <th class="text-center">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($attendance_summery as $attendance)
+                                @forelse($attendance_summary as $attendance)
                                     <tr>
                                         <td class="text-center">{{ $loop->iteration }}</td>
-                                        <td>{{ $attendance->employee_name ?? '' }}</td>
                                         <td>{{ dateFormat($attendance->attendance_date, 'd M, D, y') }}</td>
-                                        <td class="text-center">{{ timeFormat($attendance->check_in, 'h:i A') }}</td>
-                                        <td class="text-center">{{ $attendance->check_out ? timeFormat($attendance->check_out, 'h:i A') : '-' }}</td>
+                                        <td>{{ $attendance->employee_name ?? '' }}</td>
                                         <td class="text-center">
-                                            <span class="badge bg-{{ $attendance->status === 'present' ? 'success' : 'danger' }}">
+                                            {{ $attendance->check_in ? timeFormat($attendance->check_in, 'h:i A') : '-' }}
+                                        </td>
+                                        <td class="text-center">
+                                            {{ $attendance->check_out ? timeFormat($attendance->check_out, 'h:i A') : '-' }}
+                                        </td>
+                                        <td class="text-center">
+                                            <span
+                                                class="badge bg-{{ $attendance->status === 'present' ? 'success' : 'danger' }}">
                                                 {{ ucFirst($attendance->status) }}
                                             </span>
                                         </td>
-                                        <td class="text-center">{{ is_object(workingHours($attendance->working_hours)) ? workingHours($attendance->working_hours)->working_hour : 'N/A' }}</td>
+                                        <td class="text-center">{{ $attendance->working_hours ?? 'N/A' }}</td>
                                         <td class="text-center">
                                             @if ($attendance->status === 'present')
-                                                <a data-bs-toggle="tooltip" data-bs-placement="top" title="Show Location"
-                                                    href="{{ route('admin.track-attendance-location',['employee_id' => $attendance->employee_id,'date' => dateFormat($attendance->attendance_date)]) }}"
-                                                    class="btn btn-sm btn-soft-info">
-                                                    <i class="fa fa-eye"></i>
+                                                <a type="button" class="btn btn-sm btn-info show-punch-history"
+                                                    data-bs-toggle="tooltip" data-bs-placement="top" title="Punch History"
+                                                    data-user-id="{{ $attendance->user_id }}"
+                                                    data-attendance-date="{{ $attendance->attendance_date }}">
+                                                    <i class="fa fa-eye fa-xl"></i>
                                                 </a>
                                             @endif
+                                            {{-- @if ($attendance->status === 'present' && $attendance->check_out == null)
+                                                <a href="{{ route('admin.edit-attendance',encrypt_decrypt($attendance->first_checkin_id,'encrypt')) }}" class="btn btn-sm btn-primary" data-bs-toggle="tooltip">
+                                                    <i class="fa fa-edit fa-xl"></i>
+                                                </a>
+                                            @endif --}}
                                         </td>
                                     </tr>
                                 @empty
@@ -147,7 +170,7 @@
 
                 </div>
                 <div class="d-flex justify-content-center">
-                    {!! $attendance_summery->links('pagination::bootstrap-4') !!}
+                    {!! $attendance_summary->links('pagination::bootstrap-4') !!}
                 </div>
             </div>
         </div>
@@ -155,4 +178,5 @@
 @endsection
 
 @push('js')
+    <script src="{{ asset('assets/admin/js/custom/attendance_logs.js') }}"></script>
 @endpush

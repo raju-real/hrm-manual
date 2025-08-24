@@ -394,6 +394,13 @@ if (!function_exists('authUser')) {
     }
 }
 
+if (!function_exists('userNameById')) {
+    function userNameById($id = null)
+    {
+        return User::find($id)->name ?? null;
+    }
+}
+
 // Project related
 
 if (!function_exists('authUserRole')) {
@@ -413,7 +420,7 @@ if (!function_exists('allEmployees')) {
 if (!function_exists('allBranches')) {
     function allBranches()
     {
-        return Branch::latest('name')->select('id', 'name')->get();
+        return Branch::latest('name')->select('id', 'name', 'slug')->get();
     }
 }
 
