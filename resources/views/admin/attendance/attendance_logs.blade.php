@@ -153,11 +153,13 @@
                                                     <i class="fa fa-eye fa-xl"></i>
                                                 </a>
                                             @endif
-                                            {{-- @if ($attendance->status === 'present' && $attendance->check_out == null)
-                                                <a href="{{ route('admin.edit-attendance',encrypt_decrypt($attendance->first_checkin_id,'encrypt')) }}" class="btn btn-sm btn-primary" data-bs-toggle="tooltip">
+                                            @if ($attendance->status === 'present' && $attendance->check_out == null)
+                                                <a href="{{ route('admin.edit-attendance', encrypt_decrypt($attendance->last_log_id, 'encrypt')) }}"
+                                                    class="btn btn-sm btn-primary" data-bs-toggle="tooltip">
                                                     <i class="fa fa-edit fa-xl"></i>
                                                 </a>
-                                            @endif --}}
+                                            @endif
+
                                         </td>
                                     </tr>
                                 @empty

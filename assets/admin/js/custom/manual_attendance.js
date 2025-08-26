@@ -58,18 +58,18 @@
 
                         showAlert(res.message, type);
 
-                        // // Disable the clicked button
-                        // $btn.prop("disabled", true);
-                        // // Enable/disable the opposite button if needed
-                        // if (direction === "in") {
-                        //     $(
-                        //         ".btn-manual-attendance[data-direction='out']"
-                        //     ).prop("disabled", false);
-                        // } else if (direction === "out") {
-                        //     $(
-                        //         ".btn-manual-attendance[data-direction='in']"
-                        //     ).prop("disabled", true);
-                        // }
+                        // Disable the clicked button immediately
+                        $btn.prop("disabled", true);
+
+                        if (direction === "in") {
+                            // If user checked in → disable check-in, enable check-out
+                            $("#checkOutBtn").prop("disabled", false);
+                            $("#checkInBtn").prop("disabled", true);
+                        } else if (direction === "out") {
+                            // If user checked out → disable check-out, enable check-in
+                            $("#checkInBtn").prop("disabled", false);
+                            $("#checkOutBtn").prop("disabled", true);
+                        }
                     },
                     error: function (xhr) {
                         let response = xhr.responseJSON || {};
@@ -86,23 +86,22 @@
 
     // Function to show in-page alert
     // Function to show in-page alert above buttons
-function showAlert(message, type = "primary") {
-    // Remove any previous alert
-    $(".alert-container").empty();
+    function showAlert(message, type = "primary") {
+        // Remove any previous alert
+        $(".alert-container").empty();
 
-    // Create new alert
-    let alertHtml = `
+        // Create new alert
+        let alertHtml = `
         <div class="alert alert-${type} fade show text-center py-1" role="alert" style="min-height:35px; width:100%;">
             ${message}
         </div>
     `;
 
-    $(".alert-container").append(alertHtml);
+        $(".alert-container").append(alertHtml);
 
-    // Auto-hide after 5 seconds
-    setTimeout(() => {
-        $(".alert-container .alert").alert("close");
-    }, 5000);
-}
-
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            $(".alert-container .alert").alert("close");
+        }, 5000);
+    }
 })(jQuery);

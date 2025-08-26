@@ -55,7 +55,7 @@ class EmployeeActivityController extends Controller
             $attendance->created_by = $userId;
             $attendance->save();
 
-            return response()->json(['status' => 'success', 'message' => 'Checked in successfully.']);
+            return response()->json(['status' => 'success', 'message' => 'Checked in successfull.']);
         } elseif ($direction === 'out') {
             // Find the last open check-in
             $attendance = AttendanceLog::where('user_id', $userId)
@@ -72,9 +72,10 @@ class EmployeeActivityController extends Controller
             $attendance->longitude = $longitude;
             $attendance->client_ip = $ipv4 ?? null;
             // Calculate total minutes
-            $attendance->total_minutes = $attendance->check_in->diffInMinutes($attendance->check_out);
+            //$attendance->total_minutes = $attendance->check_in->diffInMinutes($attendance->check_out);
+            $attendance->total_minutes =ceil((strtotime($attendance->check_out) - strtotime($attendance->check_in)) / 60);
             $attendance->save();
-            return response()->json(['status' => 'success', 'message' => 'Checked out successfully.', 'total_minutes' => $attendance->total_minute]);
+            return response()->json(['status' => 'success', 'message' => 'Checked out successfull.', 'total_minutes' => $attendance->total_minute]);
         }
 
         return response()->json(['status' => 'error', 'message' => 'Invalid direction.']);

@@ -441,25 +441,53 @@ if (!function_exists('allDepartments')) {
 if (!function_exists('hasCheckIn')) {
     function hasCheckIn()
     {
-        // Get today's check-in
-        $todayCheckIn = AttendanceLog::where('id', authUser()->id)
-            ->where('direction', 'in')
-            ->whereDate('punch_time', now()->toDateString())
+        // Get today's check-in without check-out
+        return \App\Models\AttendanceLog::where('user_id', authUser()->id)
+            ->whereDate('check_in', today())
+            ->whereNotNull('check_in')
+            ->whereNull('check_out')
             ->exists();
-
-        return $todayCheckIn;
     }
 }
+
 
 if (!function_exists('hasCheckOut')) {
     function hasCheckOut()
     {
-        // Check if there's a check-out today
-        $hasCheckOut = AttendanceLog::where('id', authUser()->id)
-            ->where('direction', 'out')
-            ->whereDate('punch_time', now()->toDateString())
+        // Check if user already checked out today
+        return \App\Models\AttendanceLog::where('user_id', authUser()->id)
+            ->whereDate('check_in', today())
+            ->whereNull('check_out')
             ->exists();
-
-        return $hasCheckOut;
     }
 }
+
+
+if (!function_exists('hasOpenAttendance')) {
+    function hasOpenAttendance()
+    {
+        // Latest record for today
+        $lastLog = \App\Models\AttendanceLog::where('user_id', authUser()->id)
+            ->whereDate('check_in', today())
+            ->latest('check_in')
+            ->first();
+
+        if (!$lastLog) {
+            // No records today → no check-in yet
+            return 'none';
+        }
+
+        if ($lastLog->check_in && !$lastLog->check_out) {
+            // User has checked in but not out
+            return 'in_only';
+        }
+
+        if ($lastLog->check_in && $lastLog->check_out) {
+            // User completed a full cycle
+            return 'completed';
+        }
+
+        return 'none';
+    }
+}
+

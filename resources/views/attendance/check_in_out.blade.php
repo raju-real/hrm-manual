@@ -210,25 +210,24 @@
             <div class="d-flex flex-column align-items-center">
                 <div class="alert-container mb-2">
                     {{-- @if (hasCheckIn() && hasCheckOut()) --}}
-                        {{-- <div class="alert alert-success text-center py-1" style="min-height:35px;">
+                    {{-- <div class="alert alert-success text-center py-1" style="min-height:35px;">
                             Today's attendance completed successfully!
                         </div> --}}
                     {{-- @endif --}}
                 </div>
-                {{-- @if (!hasCheckIn()) --}}
-                    <button class="btn btn-success btn-attendance btn-manual-attendance mb-3" data-direction="in"
-                        id="checkInBtn">
-                        <img src="https://img.icons8.com/ios-filled/50/ffffff/login-rounded-right.png" />
-                        Check-In
-                    </button>
-                {{-- @endif --}}
+                <button class="btn btn-success btn-attendance btn-manual-attendance mb-3" data-direction="in"
+                    id="checkInBtn" {{ hasOpenAttendance() === 'in_only' ? 'disabled' : '' }}>
+                    <img src="https://img.icons8.com/ios-filled/50/ffffff/login-rounded-right.png" />
+                    Check-In
+                </button>
+
 
                 {{-- @if (!hasCheckOut()) --}}
-                    <button class="btn btn-danger btn-attendance btn-manual-attendance" data-direction="out"
-                        id="checkOutBtn">
-                        <img src="https://img.icons8.com/ios-filled/50/ffffff/logout-rounded-left.png" />
-                        Check-Out
-                    </button>
+                <button class="btn btn-danger btn-attendance btn-manual-attendance" data-direction="out"
+                    id="checkOutBtn" {{ hasOpenAttendance() === 'completed' || hasOpenAttendance() === 'none' ? 'disabled' : '' }}>
+                    <img src="https://img.icons8.com/ios-filled/50/ffffff/logout-rounded-left.png" />
+                    Check-Out
+                </button>
                 {{-- @endif --}}
             </div>
         </div>

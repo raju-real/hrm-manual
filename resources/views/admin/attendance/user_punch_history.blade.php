@@ -25,7 +25,15 @@
                                     <td class="text-center">
                                         {{ $attendance->check_out ? timeFormat($attendance->check_out, 'h:i A') : '-' }}
                                     </td>
-                                    <td class="text-center">{{ $attendance->minute_in_hour ?? 'N/A' }}</td>
+                                    <td class="text-center">
+                                        @if ($attendance->total_minutes == null)
+                                            {{ 'N/A' }}
+                                        @elseif ($attendance->total_minutes == 0)
+                                            {{ '0' }}    
+                                        @else
+                                            {{ $attendance->minute_in_hour ?? 'N/A' }}
+                                        @endif
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>

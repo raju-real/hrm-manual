@@ -44,10 +44,16 @@
                             <div class="col-md-4">
                                 <div class="mb-3">
                                     <label class="form-label">Check Out</label>
-                                    <input name="check_out" type="text" value="{{ old('check_out') }}"
-                                        class="form-control datetimepicker" placeholder="Check out time">
+                                    <input name="check_out" type="text" class="form-control flat_datetimepicker"
+                                        placeholder="Check out time"
+                                        data-default="{{ old('check_out', $attendance->check_out ?? now()) }}">
+
+                                    @error('check_out')
+                                        {!! displayError($message) !!}
+                                    @enderror
                                 </div>
                             </div>
+
 
 
                         </div>

@@ -20,6 +20,8 @@
     <link rel="stylesheet" href="{{ asset('assets/common/datetimepicker/css/bootstrap-datepicker.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/common/datetimepicker/css/tempusdominus-bootstrap-4.min.css') }}"
         crossorigin="anonymous" />
+    {{-- Flat date time picker --}}
+    <link rel="stylesheet" href="{{ asset('assets/common/flatpicker/flatpicker.min.css') }}">
 
     {{-- Slim select     --}}
     <link href="{{ asset('assets/admin/partial/css/slimselect.min.css') }}" rel="stylesheet">
@@ -193,7 +195,11 @@
     <script src="{{ asset('assets/common/datetimepicker/js/moment.min.js') }}"></script>
     <script src="{{ asset('assets/common/datetimepicker/js/moment-timezone-with-data.min.js') }}"></script>
     <script src="{{ asset('assets/common/datetimepicker/js/tempusdominus-bootstrap-4.min.js') }}"></script>
+    {{-- Flat date time picker --}}
+    <script src="{{ asset('assets/common/flatpicker/flatpicker.min.js') }}"></script>
+
     <script src="{{ asset('assets/common/datetimepicker/js/custom_picker.js') }}"></script>
+
     <script src="{{ asset('assets/admin/partial/js/form_validation.js') }}"></script>
     {{-- Slim Select  --}}
     <script src="{{ asset('assets/admin/partial/js/slimselect.min.js') }}"></script>
