@@ -17,27 +17,30 @@ class AdminLogin extends Controller
             Auth::logout();
         }
 
-
         $validated = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required'
+            'email_or_username' => 'required|string',   // can be email OR username
+            'password' => 'required|string'
         ]);
 
+        // Determine whether the login field is an email or username
+        $loginField = filter_var($validated['email_or_username'], FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+
         $credentials = [
-            'email' => $validated['email'],
+            $loginField => $validated['email_or_username'],
             'password' => $validated['password'],
-            'status' => 'active',
+            'status'   => 'active',
         ];
 
-        if (Auth::attempt($credentials, $request->remember)) {
+        if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $user = auth()->user();
+
             // Update login time
             $user->last_login_at = now();
             $user->save();
 
-            if($user->role === 'admin') {
+            if ($user->role === 'admin') {
                 return redirect()->intended(route('admin.dashboard'));
-            } elseif($user->role === 'employee') {
+            } elseif ($user->role === 'employee') {
                 return redirect()->intended(route('admin.check-in-out'));
             } else {
                 return redirect()->intended(route('permission-denied'));
@@ -46,7 +49,7 @@ class AdminLogin extends Controller
 
         return redirect()
             ->back()
-            ->withInput($request->only('email', 'remember'))
-            ->with('message', 'Email or Password not matched!');
+            ->withInput($request->only('login', 'remember'))
+            ->with('message', 'Email/Username or Password not matched!');
     }
 }

@@ -20,6 +20,7 @@ class StaffController extends Controller
         $data->when(request()->get('search'),function($query) {
            $search = request()->get('search');
            $query->where('name',"LIKE","%{$search}%");
+           $query->orWhere('email',request('search'));
            $query->orWhere('mobile',request('search'));
         });
         $data->when(request()->get('status'),function($query) {
@@ -55,6 +56,12 @@ class StaffController extends Controller
                 'max:50',
                 Rule::unique('users', 'email')->whereNull('deleted_at')
             ],
+            'username' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('users', 'username')->whereNull('deleted_at')
+            ],
             'mobile' => [
                 'required',
                 'string',
@@ -76,6 +83,7 @@ class StaffController extends Controller
         $staff->branch_id = $request->branch;
         $staff->name = $request->name;
         $staff->email = $request->email;
+        $staff->username = $request->username;
         $staff->mobile = $request->mobile;
         $staff->salary = $request->salary ?? 0.00;
         if($request->file('image')) {
@@ -113,6 +121,12 @@ class StaffController extends Controller
                 'max:50',
                 Rule::unique('users', 'email')->whereNull('deleted_at')->ignore($id)
             ],
+            'username' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('users', 'username')->whereNull('deleted_at')->ignore($id)
+            ],
             'mobile' => [
                 'required',
                 'string',
@@ -126,6 +140,7 @@ class StaffController extends Controller
         $staff->designation_id = $request->designation;
         $staff->name = $request->name;
         $staff->email = $request->email;
+        $staff->username = $request->username;
         $staff->mobile = $request->mobile;
         if($request->password) {
             $staff->password = Hash::make($request->password);

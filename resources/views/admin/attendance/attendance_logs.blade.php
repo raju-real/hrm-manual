@@ -117,9 +117,10 @@
                                 <tr>
                                     <th class="text-center">Sl.no</th>
                                     <th>Date</th>
+                                    <th>Branch</th>
                                     <th>Name</th>
-                                    <th class="text-center">First Check In</th>
-                                    <th class="text-center">Last Check Out</th>
+                                    <!--<th class="text-center">First Check In</th>-->
+                                    <!--<th class="text-center">Last Check Out</th>-->
                                     <th class="text-center">Status</th>
                                     <th class="text-center">Working Hour</th>
                                     <th class="text-center">Action</th>
@@ -130,22 +131,23 @@
                                     <tr>
                                         <td class="text-center">{{ $loop->iteration }}</td>
                                         <td>{{ dateFormat($attendance->attendance_date, 'd M, D, y') }}</td>
+                                        <td>{{ branchName($attendance->last_log_id) ?? '' }}</td>
                                         <td>{{ $attendance->employee_name ?? '' }}</td>
-                                        <td class="text-center">
-                                            {{ $attendance->check_in ? timeFormat($attendance->check_in, 'h:i A') : '-' }}
-                                        </td>
-                                        <td class="text-center">
-                                            {{ $attendance->check_out ? timeFormat($attendance->check_out, 'h:i A') : '-' }}
-                                        </td>
+                                        <!--<td class="text-center">-->
+                                        <!--    {{ $attendance->check_in ? timeFormat($attendance->check_in, 'h:i A') : '-' }}-->
+                                        <!--</td>-->
+                                        <!--<td class="text-center">-->
+                                        <!--    {{ $attendance->check_out ? timeFormat($attendance->check_out, 'h:i A') : '-' }}-->
+                                        <!--</td>-->
                                         <td class="text-center">
                                             <span
-                                                class="badge bg-{{ $attendance->status === 'present' ? 'success' : 'danger' }}">
-                                                {{ ucFirst($attendance->status) }}
+                                                class="badge bg-{{ isPresent($attendance->user_id,request()->start_date ?? today()) ? 'success' : 'danger' }}">
+                                                {{ ucFirst(isPresent($attendance->user_id,request()->start_date ?? today()) ? 'present' : 'absent') }}
                                             </span>
                                         </td>
                                         <td class="text-center">{{ $attendance->working_hours ?? 'N/A' }}</td>
                                         <td class="text-center">
-                                            @if ($attendance->status === 'present')
+                                            @if (isPresent($attendance->user_id,request()->start_date ?? today()))
                                                 <a type="button" class="btn btn-sm btn-info show-punch-history"
                                                     data-bs-toggle="tooltip" data-bs-placement="top" title="Punch History"
                                                     data-user-id="{{ $attendance->user_id }}"
@@ -153,7 +155,7 @@
                                                     <i class="fa fa-eye fa-xl"></i>
                                                 </a>
                                             @endif
-                                            @if ($attendance->status === 'present' && $attendance->check_out == null)
+                                            @if (isEiditable($attendance->last_log_id))
                                                 <a href="{{ route('admin.edit-attendance', encrypt_decrypt($attendance->last_log_id, 'encrypt')) }}"
                                                     class="btn btn-sm btn-primary" data-bs-toggle="tooltip">
                                                     <i class="fa fa-edit fa-xl"></i>

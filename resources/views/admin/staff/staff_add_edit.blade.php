@@ -111,6 +111,16 @@
                                     @enderror
                                 </div>
                             </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label class="form-label">Username {!! starSign() !!}</label>
+                                    <input type="text" name="username" value="{{ old('username') ?? ($staff->username ?? '') }}"
+                                        class="form-control {{ hasError('username') }}" placeholder="username">
+                                    @error('username')
+                                        {!! displayError($message) !!}
+                                    @enderror
+                                </div>
+                            </div>
 
                             <div class="col-md-4">
                                 <div class="mb-3">

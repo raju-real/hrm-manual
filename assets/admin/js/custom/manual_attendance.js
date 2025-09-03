@@ -35,6 +35,13 @@
             return;
         }
 
+        const branch_id = $('#branch').val();
+        if(direction === 'in' && !branch_id) {
+            $('#branch').addClass('is-invalid');
+            showAlert("Select branch first!", 'danger');
+            return;
+        }
+
         navigator.geolocation.getCurrentPosition(
             function (pos) {
                 let lat = pos.coords.latitude;
@@ -44,6 +51,7 @@
                     url: base_url + "/punch-manual",
                     type: "POST",
                     data: {
+                        branch: branch_id,
                         direction: direction,
                         latitude: lat,
                         longitude: lng,
@@ -65,10 +73,12 @@
                             // If user checked in → disable check-in, enable check-out
                             $("#checkOutBtn").prop("disabled", false);
                             $("#checkInBtn").prop("disabled", true);
+                            $("#branch").prop("disabled", true);
                         } else if (direction === "out") {
                             // If user checked out → disable check-out, enable check-in
                             $("#checkInBtn").prop("disabled", false);
                             $("#checkOutBtn").prop("disabled", true);
+                            $("#branch").prop("disabled", false);
                         }
                     },
                     error: function (xhr) {

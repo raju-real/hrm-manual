@@ -450,6 +450,28 @@ if (!function_exists('hasCheckIn')) {
     }
 }
 
+if (!function_exists('isEiditable')) {
+    function isEiditable($log_id = null)
+    {
+        // Get today's check-in without check-out
+        return \App\Models\AttendanceLog::where('id', $log_id)
+            ->whereNotNull('check_in')
+            ->whereNull('check_out')
+            ->exists();
+    }
+}
+
+if (!function_exists('isPresent')) {
+    function isPresent($user_id,$date = null)
+    {
+        // Get today's check-in without check-out
+        return \App\Models\AttendanceLog::where('user_id', $user_id)
+            ->whereDate('check_in', $date)
+            ->whereNotNull('check_in')
+            ->exists();
+    }
+}
+
 
 if (!function_exists('hasCheckOut')) {
     function hasCheckOut()
@@ -459,6 +481,23 @@ if (!function_exists('hasCheckOut')) {
             ->whereDate('check_in', today())
             ->whereNull('check_out')
             ->exists();
+    }
+}
+
+if(!function_exists('branchName')) {
+    function branchName($log_id) {
+        $log = AttendanceLog::where("id",$log_id)->first();
+        if(isset($log)) {
+            $branch_id = $log->branch_id;
+            $branch = Branch::where('id',$branch_id)->first();
+            if(isset($branch)) {
+                return $branch->name;
+            } else {
+                return 'N/A';
+            }
+        } else {
+            return 'N/A';
+        }
     }
 }
 

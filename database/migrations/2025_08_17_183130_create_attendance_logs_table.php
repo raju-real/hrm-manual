@@ -15,6 +15,7 @@ return new class extends Migration
     {
         Schema::create('attendance_logs', function (Blueprint $table) {
             $table->id();
+            $table->integer('branch_id')->nullable(); 
             $table->integer('user_id')->nullable(); 
             $table->timestamp('check_in')->nullable();
             $table->timestamp('check_out')->nullable();

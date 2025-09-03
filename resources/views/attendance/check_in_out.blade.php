@@ -189,9 +189,11 @@
         <div class="attendance-container">
             <h2 class="attendance-title">Attendance Management</h2>
             <div class="attendance-quote">"Punctuality is the soul of business."</div>
-            <div class="user-info">{{ Auth::user()->name ?? '' }}</div>
-            <div class="designation">{{ Auth::user()->designation->name ?? '' }}</div>
-            <div class="date-display" id="currentDate">{{ date('d M D, Y') }}</div>
+            <div class="user-info">
+                {{ Auth::user()->name ?? '' }}
+                <p>{{ Auth::user()->designation->name ?? '' }}</p>
+                <p class="date-display" id="currentDate">{{ date('d M D, Y') }}</p>
+            </div>            
 
             <!-- Centered Toast -->
             <div class="toast-container">
@@ -215,6 +217,12 @@
                         </div> --}}
                     {{-- @endif --}}
                 </div>
+                <select name="branch" id="branch" class="form-select mb-3" {{ hasOpenAttendance() === 'in_only' ? 'disabled' : '' }}>
+                    <option value="">Select Branch</option>
+                    @foreach (allBranches() as $branch)
+                        <option value="{{ $branch->id }}">{{ $branch->name ?? '' }}</option>
+                    @endforeach
+                </select>
                 <button class="btn btn-success btn-attendance btn-manual-attendance mb-3" data-direction="in"
                     id="checkInBtn" {{ hasOpenAttendance() === 'in_only' ? 'disabled' : '' }}>
                     <img src="https://img.icons8.com/ios-filled/50/ffffff/login-rounded-right.png" />

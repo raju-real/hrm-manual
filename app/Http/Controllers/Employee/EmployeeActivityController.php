@@ -31,8 +31,14 @@ class EmployeeActivityController extends Controller
         $direction = $request->direction;
         $latitude = $request->latitude;
         $longitude = $request->longitude;
-        $ipv4 = gethostbyname(gethostname());
+        $client_ip = $request->ip();
         $userId = Auth::id();
+
+        $branch_id = $request->branch;
+        if(!isset($branch_id)) {
+            return response()->json(['status' => 'error', 'message' => 'Select Branch first.']);
+        }
+
 
         if ($direction === 'in') {
             // Check if already checked in without checking out
@@ -47,11 +53,12 @@ class EmployeeActivityController extends Controller
 
             // Create a new attendance record with check-in time
             $attendance = new AttendanceLog();
+            $attendance->branch_id = $branch_id;
             $attendance->user_id = $userId;
             $attendance->check_in = now();
             $attendance->latitude = $latitude;
             $attendance->longitude = $longitude;
-            $attendance->client_ip = $ipv4 ?? null;
+            $attendance->client_ip = $client_ip ?? null;
             $attendance->created_by = $userId;
             $attendance->save();
 
@@ -70,7 +77,7 @@ class EmployeeActivityController extends Controller
             $attendance->check_out = now();
             $attendance->latitude = $latitude;
             $attendance->longitude = $longitude;
-            $attendance->client_ip = $ipv4 ?? null;
+            $attendance->client_ip = $client_ip ?? null;
             // Calculate total minutes
             //$attendance->total_minutes = $attendance->check_in->diffInMinutes($attendance->check_out);
             $attendance->total_minutes =ceil((strtotime($attendance->check_out) - strtotime($attendance->check_in)) / 60);

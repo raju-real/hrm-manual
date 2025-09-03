@@ -21,7 +21,8 @@ return new class extends Migration
             $table->integer('designation_id')->nullable();
             $table->foreignId('branch_id')->nullable();
             $table->string('name', 191);
-            $table->string('email', 30)->unique();
+            $table->string('email', 50)->unique();
+            $table->string('username', 50)->unique();
             $table->string('mobile', 20)->unique()->nullable();
             $table->double('salary',8,2)->default(0.00);
             $table->string('password_plain', 15);

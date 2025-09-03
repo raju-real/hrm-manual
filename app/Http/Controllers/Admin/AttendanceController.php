@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use Carbon\Carbon;
 use App\Models\User;
+use App\Models\Branch;
 use Illuminate\Http\Request;
 use App\Models\AttendanceLog;
 use Illuminate\Support\Facades\DB;
@@ -23,25 +24,26 @@ class AttendanceController extends Controller
             ? Carbon::parse($request->input('end_date'))->endOfDay()
             : $startDate->copy()->endOfDay();
 
-        // 2️⃣ Subquery: last log of the day per user
+
+
+        // 2️⃣ Subquery: per user per day → sum total minutes + get last log id
         $attendanceSub = DB::table('attendance_logs as al')
             ->select(
-                'al.id as last_log_id',
+                'al.branch_id',
                 'al.user_id',
                 DB::raw('DATE(al.check_in) as attendance_date'),
-                'al.check_in',
-                'al.check_out',
-                'al.total_minutes'
+                DB::raw('SUM(al.total_minutes) as total_minutes'),
+                DB::raw('MAX(al.id) as last_log_id') 
             )
+            ->when(request()->has('branch'), function($query) use($request) {
+                $branch = Branch::whereSlug($request->input('branch'))->first();
+                $branch_id = $branch->id ?? null;
+                $query->where('al.branch_id',$branch_id);
+            })
             ->whereBetween('al.check_in', [$startDate, $endDate])
-            ->whereRaw('al.check_in = (
-            SELECT MAX(a2.check_in)
-            FROM attendance_logs a2
-            WHERE a2.user_id = al.user_id
-            AND DATE(a2.check_in) = DATE(al.check_in)
-        )');
+            ->groupBy('al.branch_id','al.user_id', DB::raw('DATE(al.check_in)'));
 
-        // 3️⃣ Main query: join summarized attendance with users + related tables
+        // 3️⃣ Main query
         $query = User::select([
             'users.id as user_id',
             'users.employee_id',
@@ -49,13 +51,17 @@ class AttendanceController extends Controller
             'departments.name as department_name',
             'designations.name as designation_name',
             'branches.name as branch_name',
+            'attendance_summary.branch_id',
             'attendance_summary.attendance_date',
-            'attendance_summary.check_in',
-            'attendance_summary.check_out',
-            'attendance_summary.total_minutes',
             'attendance_summary.last_log_id',
-            DB::raw("ROUND(attendance_summary.total_minutes / 60, 2) as working_hours"),
-            DB::raw("CASE WHEN attendance_summary.check_in IS NOT NULL THEN 'present' ELSE 'absent' END as status")
+            DB::raw("
+            CONCAT(
+                LPAD(FLOOR(COALESCE(attendance_summary.total_minutes, 0) / 60), 2, '0'),
+                ':',
+                LPAD(COALESCE(attendance_summary.total_minutes, 0) % 60, 2, '0')
+            ) as working_hours
+        "),
+            DB::raw("CASE WHEN attendance_summary.total_minutes IS NOT NULL THEN 'present' ELSE 'absent' END as status")
         ])
             ->leftJoin('departments', 'users.department_id', '=', 'departments.id')
             ->leftJoin('designations', 'users.designation_id', '=', 'designations.id')
@@ -64,13 +70,15 @@ class AttendanceController extends Controller
                 $join->on('attendance_summary.user_id', '=', 'users.id');
             });
 
-        // 4️⃣ Apply filters
+        // 4️⃣ Filters
         if ($request->filled('user')) {
             $query->where('users.employee_id', $request->input('user'));
         }
 
         if ($request->filled('branch')) {
-            $query->where('branches.slug', $request->input('branch'));
+            $branch = Branch::whereSlug($request->input('branch'))->first();
+                $branch_id = $branch->id ?? null;
+                $query->where('attendance_summary.branch_id',$branch_id);
         }
 
         if ($request->filled('department_slug')) {
@@ -84,9 +92,9 @@ class AttendanceController extends Controller
         if ($request->filled('status')) {
             $status = strtolower($request->input('status'));
             if ($status === 'present') {
-                $query->whereNotNull('attendance_summary.check_in');
+                $query->whereNotNull('attendance_summary.total_minutes');
             } elseif ($status === 'absent') {
-                $query->whereNull('attendance_summary.check_in');
+                $query->whereNull('attendance_summary.total_minutes');
             }
         }
 
@@ -100,6 +108,8 @@ class AttendanceController extends Controller
 
 
 
+
+
     public function punchHistory()
     {
         $user_id = request()->get('user_id');
@@ -109,7 +119,8 @@ class AttendanceController extends Controller
         }
         $punch_history = AttendanceLog::whereDate('check_in', $attendance_date)->where("user_id", $user_id)->select('id', 'user_id', 'check_in', 'check_out', 'client_ip', 'total_minutes')->latest()->get();
         $totalMinutes = $punch_history->sum('total_minutes');
-        $totalHours   = round($totalMinutes / 60, 2);
+        //$totalHours   = round($totalMinutes / 60, 2);
+        $totalHours = sprintf('%02d:%02d', floor($totalMinutes / 60), $totalMinutes % 60);
         $html = view('admin.attendance.user_punch_history', compact('punch_history', 'totalHours'))->render();
         return response()->json([
             'title' => 'Punch history for ' . userNameById($user_id) . ' on ' . dateFormat($attendance_date, 'd M, y'),

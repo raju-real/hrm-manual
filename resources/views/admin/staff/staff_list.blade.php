@@ -39,7 +39,7 @@
                                     <div class="col-md-6 pb-4">
                                         <div class="form-group">
                                             <input type="search" name="search" class="form-control"
-                                                   placeholder="Search by Company Name, Mobile" value="{{ request('search') ?? '' }}">
+                                                   placeholder="Search by Name, Email, Mobile" value="{{ request('search') ?? '' }}">
                                         </div>
                                     </div>
                                     <div class="col-md-4">
@@ -77,6 +77,7 @@
                                 <th class="text-center">Image</th>
                                 <th>Name</th>
                                 <th>Email</th>
+                                <th>Username</th>
                                 <th>Mobile</th>
                                 <th class="text-center">Active Status</th>
                                 <th class="text-center">Action</th>
@@ -97,6 +98,7 @@
                                     </td>
                                     <td>{{ $staff->name ?? '' }}</td>
                                     <td>{{ $staff->email ?? '' }}</td>
+                                    <td>{{ $staff->username ?? '' }}</td>
                                     <td>{{ $staff->mobile ?? '' }}</td>
                                     <td class="text-center">
                                         <input type="checkbox" id="staff-{{ $loop->index + 1 }}" class="staff-status"

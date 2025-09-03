@@ -16,6 +16,11 @@ class AttendanceLog extends Model
         'check_out' => 'datetime',
     ];
 
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class, 'branch_id', 'id');
+    }
+
     public function employee()
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
@@ -25,7 +30,12 @@ class AttendanceLog extends Model
     {
         $total_minutes = $this->total_minutes;
         if ($total_minutes) {
-            return round($total_minutes / 100, 2); // convert minutes like 24 → 0.24
+            //return round($total_minutes / 100, 2); // convert minutes like 24 → 0.24
+            // Convert minutes → hours (decimal)
+            $totalHours = round($total_minutes / 60, 2); // 1.17
+
+            // OR format as H:i (1:10)
+           return $hoursFormatted = sprintf('%02d:%02d', floor($total_minutes / 60), $total_minutes % 60);
         }
         return 'N/A';
     }

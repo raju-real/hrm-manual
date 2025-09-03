@@ -5,10 +5,10 @@
     <form class="form-horizontal" action="{{ route('admin-login') }}" method="POST">
         @csrf
         <div class="mb-3">
-            <label class="form-label">Email {!! starSign() !!}</label>
-            <input type="text" name="email" value="{{ old('email') }}" class="form-control {{ hasError('email') }}"
-                placeholder="Email" autocomplete="on" autofocus>
-            @error('email')
+            <label class="form-label">Email or Username {!! starSign() !!}</label>
+            <input type="text" name="email_or_username" value="{{ old('email_or_username') }}" class="form-control {{ hasError('email_or_username') }}"
+                placeholder="Email or Username" autocomplete="on" autofocus>
+            @error('email_or_username')
                 {!! displayError($message) !!}
             @enderror
         </div>
